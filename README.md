@@ -1,4 +1,7 @@
 # vina_testing
+
+## Objective
+
 Here we are running some redocking experiments to understand the limitations of
 Vina AutoDock.
 We are working with three protein-ligand complex structures which were obtained from
@@ -31,3 +34,18 @@ poses without any previous knowledge of ligand interactions.
 
 Together these tests will determine whether Vina is useful for finding
 biologically relevant protein-drug interactions.
+
+## Reproduction
+
+To reproduce, you will need a computer with 16 CPU threads, 16 GB RAM and the
+following dependencies:
+
+* mgltools_x86_64Linux2_1.5.7
+* Open Babel 3.1.0
+* AutoDock Vina v1.2.3
+
+Execute the analysis:
+
+```
+bash main.sh
+```
