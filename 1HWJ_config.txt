@@ -1,0 +1,14 @@
+receptor = 1HWJ_clean.pdbqt
+ligand = 1HWJ_ligand.pdbqt
+
+center_x = 16.8824
+center_y = 7.5881
+center_z = 15.1266
+
+size_x = 20
+size_y = 20
+size_z = 20
+
+exhaustiveness = 12
+num_modes = 10
+energy_range = 3

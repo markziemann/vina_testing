@@ -1,0 +1,10 @@
+receptor = 1J3K_chainA_clean.pdbqt
+ligand = ligand_1J3K_NDP_A.pdbqt
+
+center_x = 36.8065
+center_y = 2.9765
+center_z = 67.769
+
+exhaustiveness = 12
+num_modes = 10
+energy_range = 3

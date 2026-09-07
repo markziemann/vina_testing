@@ -1,0 +1,10 @@
+receptor = 3ERT_chainA_clean.pdbqt
+ligand = ligand_3ERT_A.pdbqt
+
+center_x = 27.382
+center_y = 8.013
+center_z = 0.318
+
+exhaustiveness = 12
+num_modes = 10
+energy_range = 3
