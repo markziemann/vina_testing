@@ -49,3 +49,14 @@ Execute the analysis:
 ```
 bash main.sh
 ```
+
+# Authors
+
+Mehnaz Hossain Meem
+Master of Biotechnology Professional
+Computational Drug Discovery / Bioinformatics Workflow
+
+Mark Ziemann
+Head of Bioinformatics
+Burnet Institute
+
