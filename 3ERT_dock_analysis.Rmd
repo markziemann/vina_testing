@@ -1,0 +1,269 @@
+---
+title: "Determine redocking distance and grid score with increasing box size"
+author: "Mehnaz Meem"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_width: 5
+    fig_height: 5
+theme: cosmo
+---
+
+Source: TBA
+
+## Introduction
+
+This analysis calculates the distance between the centre of the top-ranked
+AutoDock Vina ligand pose and the crystal-ligand centre for 3ERT. It also
+compares docking distance with Vina predicted binding affinity.
+
+```{r,library}
+
+library("beeswarm")
+
+```
+
+## Crystal structure position
+
+```{r crystal}
+
+cx <- 30.282
+cy <- -1.913
+cz <- 24.2065
+cxyz <- c(cx, cy, cz)
+
+```
+
+## Read example data
+
+```{r autodock_data}
+
+pdb <- readLines("3ERT_docking.pdbqt", warn = FALSE)
+
+# Keep only the top-ranked Vina pose (MODEL 1)
+model_start <- grep("^MODEL[[:space:]]+1[[:space:]]*$", pdb)[1]
+
+if (!is.na(model_start)) {
+  model_end <- which(
+    seq_along(pdb) > model_start & grepl("^ENDMDL", pdb)
+  )[1]
+
+  if (is.na(model_end)) {
+    stop("MODEL 1 has no ENDMDL in the example PDBQT file")
+  }
+
+  pdb <- pdb[model_start:model_end]
+}
+
+atoms <- pdb[grep("^(ATOM|HETATM)", pdb)]
+
+if (length(atoms) == 0) {
+  stop("No ATOM or HETATM lines found in the example PDBQT file")
+}
+
+```
+
+Extract the x, y and z coordinates from their fixed PDBQT positions.
+
+```{r extract_coords}
+
+x <- as.numeric(substr(atoms, 31, 38))
+y <- as.numeric(substr(atoms, 39, 46))
+z <- as.numeric(substr(atoms, 47, 54))
+
+if (anyNA(c(x, y, z))) {
+  stop("Could not read coordinates from the example PDBQT file")
+}
+
+mx <- cbind(x = x, y = y, z = z)
+
+str(mx)
+summary(mx)
+
+```
+
+## Predicted ligand centre and distance
+
+```{r example_distance}
+
+px <- mean(range(mx[, "x"]))
+py <- mean(range(mx[, "y"]))
+pz <- mean(range(mx[, "z"]))
+
+dx <- abs(cx - px)
+dy <- abs(cy - py)
+dz <- abs(cz - pz)
+
+hyp <- sqrt(dx^2 + dy^2 + dz^2)
+hyp
+
+```
+
+## Define distance function
+
+```{r dist_function}
+
+model_ligand_dist <- function(cxyz, pdbqt_file) {
+  pdb <- readLines(pdbqt_file, warn = FALSE)
+
+  # Keep only the top-ranked Vina pose (MODEL 1)
+  model_start <- grep("^MODEL[[:space:]]+1[[:space:]]*$", pdb)[1]
+
+  if (!is.na(model_start)) {
+    model_end <- which(
+      seq_along(pdb) > model_start & grepl("^ENDMDL", pdb)
+    )[1]
+
+    if (is.na(model_end)) {
+      stop(paste("MODEL 1 has no ENDMDL in:", pdbqt_file))
+    }
+
+    pdb <- pdb[model_start:model_end]
+  }
+
+  atoms <- pdb[grep("^(ATOM|HETATM)", pdb)]
+
+  if (length(atoms) == 0) {
+    stop(paste("No ATOM or HETATM lines found in:", pdbqt_file))
+  }
+
+  # Read coordinates from fixed-width PDBQT columns
+  x <- as.numeric(substr(atoms, 31, 38))
+  y <- as.numeric(substr(atoms, 39, 46))
+  z <- as.numeric(substr(atoms, 47, 54))
+
+  if (anyNA(c(x, y, z))) {
+    stop(paste("Could not read coordinates from:", pdbqt_file))
+  }
+
+  predicted_centre <- c(
+    mean(range(x)),
+    mean(range(y)),
+    mean(range(z))
+  )
+
+  sqrt(sum((cxyz - predicted_centre)^2))
+}
+
+```
+
+Test the function.
+
+```{r functest}
+
+model_ligand_dist( cxyz, "3ERT_docking.pdbqt")
+
+```
+
+## Run for all PDBQT files
+
+```{r runall}
+
+myfiles <- list.files("3ERT_seed_run_docking",full.names=TRUE)
+
+box_sizes <- sort(as.numeric(unique(sapply(strsplit(basename(myfiles),"_"),"[[",3))))
+box_sizes
+
+res <- lapply(box_sizes, function(x) {
+  myfiles2 <- myfiles[grep(paste("_",x,"_",sep=""),myfiles)]
+  res2 <- unlist(lapply(myfiles2,function(y) { model_ligand_dist(cxyz, y) } ) )
+  return(res2)
+})
+
+names(res) <- box_sizes
+
+boxplot(res, col="white", cex=0, xlab="Box size (A)", ylab="Redocking distance (A)",main="3ERT redocking")
+beeswarm(res, pch=1, col="black", cex=0.2, add=TRUE)
+
+lapply(res,summary)
+
+```
+
+## Extract Vina predicted binding affinity
+
+```{r vina_energy}
+
+extract_vina_energy <- function(pdbqt_file) {
+  lines <- readLines(pdbqt_file, warn = FALSE)
+
+  vina_line <- grep("^REMARK VINA RESULT:", lines, value = TRUE )
+
+  if (length(vina_line) == 0) {
+    return(NA_real_)
+  }
+
+  as.numeric( sub( "^REMARK VINA RESULT:[[:space:]]*([-0-9.]+).*", "\\1", vina_line[1] ) )
+}
+
+extract_vina_energy("3ERT_docking.pdbqt")
+
+res0 <- lapply(box_sizes, function(x) {
+  myfiles2 <- myfiles[grep(paste("_",x,"_",sep=""),myfiles)]
+  res3 <- unlist(lapply(myfiles2,function(y) { extract_vina_energy(y) } ) )
+  return(res3)
+})
+
+names(res0) <- box_sizes
+
+boxplot(res0, col="white", cex=0, xlab="Box size (A)", ylab="Grid score",main="3ERT redocking")
+beeswarm(res0, pch=1, col="black", cex=0.2, add=TRUE)
+
+lapply(res0,summary)
+
+```
+
+## Negative control distance
+
+```{r negdist}
+
+myfiles <- list.files("3ERT_negative_docking",full.names=TRUE)
+
+box_sizes <- sort(as.numeric(unique(sapply(strsplit(basename(myfiles),"_"),"[[",3))))
+box_sizes
+
+res4 <- lapply(box_sizes, function(x) {
+  myfiles2 <- myfiles[grep(paste("_",x,"_",sep=""),myfiles)]
+  res5 <- unlist(lapply(myfiles2,function(y) { model_ligand_dist(cxyz, y) } ) )
+  return(res5)
+})
+
+names(res4) <- box_sizes
+
+boxplot(res4, col="white", cex=0, xlab="Box size (A)", ylab="Redocking distance (A)",main="3ERT negative docking")
+beeswarm(res4, pch=1, col="black", cex=0.2, add=TRUE)
+
+lapply(res4,summary)
+
+```
+
+## Negative binding affinity
+
+```{r neg_energy}
+
+res6 <- lapply(box_sizes, function(x) {
+  myfiles2 <- myfiles[grep(paste("_",x,"_",sep=""),myfiles)]
+  res7 <- unlist(lapply(myfiles2,function(y) { extract_vina_energy(y) } ) )
+  return(res7)
+})
+
+names(res6) <- box_sizes
+
+boxplot(res6, col="white", cex=0, xlab="Box size (A)", ylab="Grid score",main="3ERT neg docking")
+beeswarm(res6, pch=1, col="black", cex=0.2, add=TRUE)
+
+lapply(res6,summary)
+
+```
+
+
+
+## Session information
+
+```{r session}
+sessionInfo()
+```
