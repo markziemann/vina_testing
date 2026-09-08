@@ -3,8 +3,6 @@ title: "Determine redocking distance and grid score with increasing box size"
 author: "Mehnaz Meem"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
-    toc: true
   html_document:
     toc: true
     toc_float: true
@@ -260,10 +258,51 @@ lapply(res6,summary)
 
 ```
 
+## Scatterplots
 
+For each box size test, extract the pose with the strongest affinity,
+and find the corresponding docking distance.
+
+```{r scatterplot1}
+
+pdist <- unlist(lapply(1:length(res), function(i) {
+  res[[i]][order(res0[[i]])[1]]
+} ) )
+
+paff <- unlist( lapply(res0, min) )
+
+plot(pdist, paff, cex=2, col="gray", pch=19,
+  xlab="Redocking distance (A)",
+  ylab="Grid score",
+  main="3ERT Top affinity poses at each box size")
+
+text(pdist,paff,labels=box_sizes)
+
+```
+
+Try with negative test now.
+
+```{r scatterplot2}
+
+pdist2 <- unlist(lapply(1:length(res4), function(i) {
+  res4[[i]][order(res6[[i]])[1]]
+} ) )
+
+paff2 <- unlist( lapply(res6, min) )
+
+plot(pdist2, paff2, cex=2, col="gray", pch=19,
+  xlab="Redocking distance (A)",
+  ylab="Grid score",
+  main="3ERT Top affinity poses at each box size (negative)")
+
+text(pdist2,paff2,labels=box_sizes)
+
+```
 
 ## Session information
 
 ```{r session}
+
 sessionInfo()
+
 ```
