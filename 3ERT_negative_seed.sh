@@ -14,17 +14,16 @@ if [ $DIR_CNT -gt 1 ] ; then
   exit
 fi
 
-for SIZE in $(seq 10 10 130) ; do
-  for SEED in $(seq 100 100 20000) ; do
-    OUTNAME=$DIR/3ERT_negative_${SIZE}_${SEED}.pdbqt
-    echo "Running $OUTNAME"
+runvina() {
+  SIZE=$1
+  SEED=$2
+  vina --config "$CONFIG" \
+    --size_x "$SIZE" --size_y "$SIZE" --size_z "$SIZE" \
+    --cpu 1 --seed "$SEED" \
+    --out "$DIR/${PROT}_negative_${SIZE}_${SEED}.pdbqt" 
+}
+export -f runvina
 
-    vina --config "$CONFIG" \
-             --seed "$SEED" \
-             --size_x "$SIZE" \
-             --size_y "$SIZE" \
-             --size_z "$SIZE" \
-             --out "$OUTNAME" \
-             --cpu 16
-  done
+for SIZE in $(seq 10 10 130)  ; do
+  parallel -j 16 runvina $SIZE ::: $(seq 100 100 20000)
 done

@@ -11,23 +11,19 @@ DIR_CNT=$(find $DIR | wc -l)
 
 if [ $DIR_CNT -gt 1 ] ; then
   echo "Stopping - directory $DIR not empty!"
-
   exit
 fi
 
-for SIZE in $(seq 10 10 130) ; do
-  BASENAME=$(basename "$CONFIG" .txt)
+runvina() {
+  SIZE=$1
+  SEED=$2
+  vina --config "$CONFIG" \
+    --size_x "$SIZE" --size_y "$SIZE" --size_z "$SIZE" \
+    --cpu 1 --seed "$SEED" \
+    --out "$DIR/${PROT}_seedrun_${SIZE}_${SEED}.pdbqt" 
+}
+export -f runvina
 
-  for SEED in $(seq 100 100 20000) ; do
-    OUTNAME=$DIR/3ERT_seedrun_${SIZE}_${SEED}.pdbqt
-    echo "Running $OUTNAME"
-
-    vina --config "$CONFIG" \
-             --seed "$SEED" \
-             --size_x "$SIZE" \
-             --size_y "$SIZE" \
-             --size_z "$SIZE" \
-             --out "$OUTNAME" \
-             --cpu 16
-  done
+for SIZE in $(seq 10 10 130)  ; do
+  parallel -j 16 runvina $SIZE ::: $(seq 100 100 20000)
 done
