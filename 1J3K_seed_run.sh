@@ -26,5 +26,5 @@ export -f runvina
 export CONFIG DIR PROT
 
 for SIZE in $(seq 10 10 130)  ; do
-  parallel -j 16 runvina $SIZE ::: $(seq 100 100 20000)
+  parallel --tmpdir . -j 16 runvina $SIZE ::: $(seq 100 100 20000)
 done
